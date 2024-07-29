@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"golang.org/x/exp/rand"
@@ -31,7 +32,6 @@ type MetaData struct {
 }
 
 func main() {
-	// var wg sync.WaitGroup
 	var vaultToken string
 	var totalRuns int
 	var totalRequests int
@@ -40,26 +40,36 @@ func main() {
 	flag.IntVar(&totalRequests, "requests", 10, "Total number of requests to send after writing a KV")
 	flag.Parse()
 	fmt.Printf("I am a token" + vaultToken)
-	runCount := totalRuns
-	requestCount := totalRequests
-	// grab flags here and then run go funcs according to the flags
-	// maybe randomize by default?
-	// Launch requests concurrently
-	for i := 0; i < runCount; i++ {
-		//	wg.Add(1)
-		//	go func() {
-		//	defer wg.Done()
-		secret := makeWriteRequest(vaultToken)
-		fmt.Printf("I am a token" + vaultToken)
-		makeMetaDataRequest(secret, vaultToken)
-		for i := 0; i < requestCount; i++ {
-			makeReadRequest(secret, vaultToken)
-		}
+
+	err := runLoadRunner(totalRuns, totalRequests, vaultToken)
+	if err != nil {
+		fmt.Printf("Failed to run %s", err)
 	}
-	//	}
+}
 
-	//wg.Wait()
-
+func runLoadRunner(runs int, requests int, token string) error {
+	var wg sync.WaitGroup
+	switch run := rand.Intn(5); run {
+	case 1:
+		for i := 0; i < runs; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				secret := makeWriteRequest(token)
+				fmt.Printf("I am a token" + token)
+				makeMetaDataRequest(secret, token)
+				for i := 0; i < requests; i++ {
+					makeReadRequest(secret, token)
+				}
+			}()
+		}
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+	}
+	wg.Wait()
+	return nil
 }
 
 func generateRandomString(length int) string {
