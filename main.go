@@ -15,8 +15,6 @@ const (
 	baseURL = "http://127.0.0.1:8200/v1/kv"
 )
 
-var vaultToken = flag.String("token", "", "token to use for the Vault requests.")
-
 type Write struct {
 	Data struct {
 		Foo string `json:"foo"`
@@ -34,10 +32,16 @@ type MetaData struct {
 
 func main() {
 	// var wg sync.WaitGroup
-	totalRuns := flag.Int("runs", 1, "total number of runs for the test.")
-	totalRequests := flag.Int("requests", 10, "Total number of requests to send after writing a KV")
-	runCount := *totalRuns
-	requestCount := *totalRequests
+	var vaultToken string
+	var totalRuns int
+	var totalRequests int
+	flag.StringVar(&vaultToken, "token", "", "token to use for the Vault requests.")
+	flag.IntVar(&totalRuns, "runs", 1, "total number of runs for the test.")
+	flag.IntVar(&totalRequests, "requests", 10, "Total number of requests to send after writing a KV")
+	flag.Parse()
+	fmt.Printf("I am a token" + vaultToken)
+	runCount := totalRuns
+	requestCount := totalRequests
 	// grab flags here and then run go funcs according to the flags
 	// maybe randomize by default?
 	// Launch requests concurrently
@@ -45,16 +49,17 @@ func main() {
 		//	wg.Add(1)
 		//	go func() {
 		//	defer wg.Done()
-		secret := makeWriteRequest()
-		fmt.Printf("I am a " + secret)
-		makeMetaDataRequest(secret)
+		secret := makeWriteRequest(vaultToken)
+		fmt.Printf("I am a token" + vaultToken)
+		makeMetaDataRequest(secret, vaultToken)
 		for i := 0; i < requestCount; i++ {
-			makeReadRequest(secret)
+			makeReadRequest(secret, vaultToken)
 		}
 	}
 	//	}
 
 	//wg.Wait()
+
 }
 
 func generateRandomString(length int) string {
@@ -112,7 +117,7 @@ func createMetaPayLoad() (string, error) {
 	return string(jsonData), nil
 }
 
-func makeWriteRequest() string {
+func makeWriteRequest(vaultToken string) string {
 	client := &http.Client{}
 	secret := generateRandomString(20)
 	payload, _ := createKVPayLoad()
@@ -121,7 +126,7 @@ func makeWriteRequest() string {
 	if err != nil {
 		fmt.Printf("Failed to create request for %s: %v\n", secret, err)
 	}
-	req.Header.Add("X-Vault-Token", *vaultToken)
+	req.Header.Add("X-Vault-Token", vaultToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := client.Do(req)
@@ -133,7 +138,7 @@ func makeWriteRequest() string {
 }
 
 // need to get the value of the secret from the call to create
-func makeMetaDataRequest(mount string) {
+func makeMetaDataRequest(mount string, vaultToken string) {
 	client := &http.Client{}
 	payload, _ := createMetaPayLoad()
 
@@ -141,7 +146,7 @@ func makeMetaDataRequest(mount string) {
 	if err != nil {
 		fmt.Printf("Failed to create request for %s: %v\n", mount, err)
 	}
-	req.Header.Add("X-Vault-Token", *vaultToken)
+	req.Header.Add("X-Vault-Token", vaultToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := client.Do(req)
@@ -151,7 +156,7 @@ func makeMetaDataRequest(mount string) {
 	defer resp.Body.Close()
 }
 
-func makeReadRequest(secret string) {
+func makeReadRequest(secret string, vaultToken string) {
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", baseURL+"/data/"+secret, nil)
@@ -159,7 +164,7 @@ func makeReadRequest(secret string) {
 		fmt.Printf("Failed to create request for %s: %v\n", secret, err)
 		return
 	}
-	req.Header.Add("X-Vault-Token", *vaultToken)
+	req.Header.Add("X-Vault-Token", vaultToken)
 
 	resp, err := client.Do(req)
 	if err != nil {
