@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -39,7 +41,6 @@ func main() {
 	flag.IntVar(&totalRuns, "runs", 1, "total number of runs for the test.")
 	flag.IntVar(&totalRequests, "requests", 10, "Total number of requests to send after writing a KV")
 	flag.Parse()
-	fmt.Printf("I am a token" + vaultToken)
 
 	err := runLoadRunner(totalRuns, totalRequests, vaultToken)
 	if err != nil {
@@ -49,26 +50,77 @@ func main() {
 
 func runLoadRunner(runs int, requests int, token string) error {
 	var wg sync.WaitGroup
-	switch run := rand.Intn(5); run {
-	case 1:
-		for i := 0; i < runs; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				secret := makeWriteRequest(token)
-				fmt.Printf("I am a token" + token)
-				makeMetaDataRequest(secret, token)
-				for i := 0; i < requests; i++ {
-					makeReadRequest(secret, token)
-				}
-			}()
+	ctx, cancel := context.WithCancel(context.Background())
+	for i := 0; i < runs; i++ {
+		randomNumber := rand.Intn(3)
+		fmt.Printf("random number %s \n", strconv.Itoa(randomNumber))
+		switch run := randomNumber; run {
+		case 0:
+			for i := 0; i < runs; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+
+					secret := makeWriteRequest(token)
+					makeMetaDataRequest(secret, token)
+					for j := 0; j < requests; j++ {
+						select {
+						case <-ctx.Done():
+							// Context canceled, exit the goroutine
+							return
+						default:
+							makeReadRequest(secret, token)
+						}
+					}
+				}()
+			}
+
+			wg.Wait()
+		case 1:
+			for i := 0; i < runs; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+
+					secret := makeWriteRequest(token)
+					makeMetaDataRequest(secret, token)
+					for j := 0; j < requests; j++ {
+						select {
+						case <-ctx.Done():
+							// Context canceled, exit the goroutine
+							return
+						default:
+							makeReadRequest(secret, token)
+						}
+					}
+				}()
+			}
+
+			wg.Wait()
+		case 2:
+			for i := 0; i < runs; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+
+					secret := makeWriteRequest(token)
+					makeMetaDataRequest(secret, token)
+					for j := 0; j < requests; j++ {
+						select {
+						case <-ctx.Done():
+							// Context canceled, exit the goroutine
+							return
+						default:
+							makeReadRequest(secret, token)
+						}
+					}
+				}()
+			}
+
+			wg.Wait()
 		}
-	case 2:
-	case 3:
-	case 4:
-	case 5:
 	}
-	wg.Wait()
+	cancel()
 	return nil
 }
 
@@ -182,6 +234,4 @@ func makeReadRequest(secret string, vaultToken string) {
 		return
 	}
 	defer resp.Body.Close()
-
-	fmt.Printf("Request to %s succeeded with status: %s\n", secret, resp.Status)
 }
