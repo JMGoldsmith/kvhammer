@@ -2,13 +2,11 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"golang.org/x/exp/rand"
@@ -49,78 +47,79 @@ func main() {
 }
 
 func runLoadRunner(runs int, requests int, token string) error {
-	var wg sync.WaitGroup
-	ctx, cancel := context.WithCancel(context.Background())
+	// var wg sync.WaitGroup
+	// ctx, cancel := context.WithCancel(context.Background())
+	// for i := 0; i < runs; i++ {
+	// randomNumber := rand.Intn(3)
+	// fmt.Printf("random number %s \n", strconv.Itoa(randomNumber))
+	// switch run := randomNumber; run {
+	// case 0:
 	for i := 0; i < runs; i++ {
-		randomNumber := rand.Intn(3)
-		fmt.Printf("random number %s \n", strconv.Itoa(randomNumber))
-		switch run := randomNumber; run {
-		case 0:
-			for i := 0; i < runs; i++ {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-
-					secret := makeWriteRequest(token)
-					makeMetaDataRequest(secret, token)
-					for j := 0; j < requests; j++ {
-						select {
-						case <-ctx.Done():
-							// Context canceled, exit the goroutine
-							return
-						default:
-							makeReadRequest(secret, token)
-						}
-					}
-				}()
-			}
-
-			wg.Wait()
-		case 1:
-			for i := 0; i < runs; i++ {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-
-					secret := makeWriteRequest(token)
-					makeMetaDataRequest(secret, token)
-					for j := 0; j < requests; j++ {
-						select {
-						case <-ctx.Done():
-							// Context canceled, exit the goroutine
-							return
-						default:
-							makeReadRequest(secret, token)
-						}
-					}
-				}()
-			}
-
-			wg.Wait()
-		case 2:
-			for i := 0; i < runs; i++ {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-
-					secret := makeWriteRequest(token)
-					makeMetaDataRequest(secret, token)
-					for j := 0; j < requests; j++ {
-						select {
-						case <-ctx.Done():
-							// Context canceled, exit the goroutine
-							return
-						default:
-							makeReadRequest(secret, token)
-						}
-					}
-				}()
-			}
-
-			wg.Wait()
+		// wg.Add(1)
+		// go func() {
+		// 	defer wg.Done()
+		fmt.Printf("this is run %s \n", strconv.Itoa(i))
+		secret := makeWriteRequest(token)
+		makeMetaDataRequest(secret, token)
+		for j := 0; j < requests; j++ {
+			// select {
+			// case <-ctx.Done():
+			// 	// Context canceled, exit the goroutine
+			// 	return
+			// default:
+			makeReadRequest(secret, token)
 		}
+		time.Sleep(5 * time.Second)
 	}
-	cancel()
+	// }
+	// }
+
+	// 		wg.Wait()
+	// 	case 1:
+	// 		for i := 0; i < runs; i++ {
+	// 			wg.Add(1)
+	// 			go func() {
+	// 				defer wg.Done()
+
+	// 				secret := makeWriteRequest(token)
+	// 				makeMetaDataRequest(secret, token)
+	// 				for j := 0; j < requests; j++ {
+	// 					select {
+	// 					case <-ctx.Done():
+	// 						// Context canceled, exit the goroutine
+	// 						return
+	// 					default:
+	// 						makeReadRequest(secret, token)
+	// 					}
+	// 				}
+	// 			}()
+	// 		}
+
+	// 		wg.Wait()
+	// 	case 2:
+	// 		for i := 0; i < runs; i++ {
+	// 			wg.Add(1)
+	// 			go func() {
+	// 				defer wg.Done()
+
+	// 				secret := makeWriteRequest(token)
+	// 				makeMetaDataRequest(secret, token)
+	// 				for j := 0; j < requests; j++ {
+	// 					select {
+	// 					case <-ctx.Done():
+	// 						// Context canceled, exit the goroutine
+	// 						return
+	// 					default:
+	// 						makeReadRequest(secret, token)
+	// 					}
+	// 				}
+	// 			}()
+	// 		}
+
+	// 		wg.Wait()
+	// 	}
+	// }
+	// cancel()
 	return nil
 }
 
@@ -161,9 +160,9 @@ func createKVPayLoad() (string, error) {
 func createMetaPayLoad() (string, error) {
 	var metaData MetaData
 	// Generate random lengths between 500 and 1024 bytes
-	fooLength := randomLength(500, 1024)
-	barLength := randomLength(500, 1024)
-	bazLength := randomLength(500, 1024)
+	fooLength := randomLength(250, 500)
+	barLength := randomLength(250, 500)
+	bazLength := randomLength(250, 500)
 
 	// Assign random strings of the generated lengths to Foo and Zip
 	metaData.CustomMetadata.Foo = generateRandomString(fooLength)
